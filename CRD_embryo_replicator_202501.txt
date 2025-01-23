@@ -1,0 +1,247 @@
+rep-dynamics
+The follow are functions that solve basic replicator equations for the CRD embryo game
+This concept is based on the evolutionary principle that suggests beneficial strategies spread quickly within a population while less beneficial ones are rapidly eliminated. Fitness is calculated using the average payoff.
+
+We model an infinite population of cells that can adopt strategies determined by the number of rounds in the game. In a one-round game, three strategies can be employed: a non-contributor (plays N), a contributor (plays C), and a killer (plays K). As the number of rounds increases, the available strategies also expand as a function of the round strategies.
+
+Using a payoff matrix represented as (a, b, c, d) in a two-player game (Strategy 1, Strategy 2), the following definitions apply: a represents the payoff when two cells of Strategy 1 interact; b represents the payoff when a Strategy 1 cell interacts with a Strategy 2 cell; c represents the payoff when a Strategy 2 cell interacts with a Strategy 1 cell; d represents the payoff when two Strategy 2 cells interact.
+
+The fitness of each strategy is calculated as the average payoff for that strategy based on the distribution of the population. 
+
+Let x be the frequency of Strategy 1 and 1 - x be the frequency of Strategy 2. The payoffs, 𝝅, for the players can be defined as follows:
+ 𝝅1 = a x + b (1 - x)
+ 𝝅2 = c x + d (1 - x) 
+
+This framework allows us to analyze how strategies evolve over time based on their relative payoffs.
+
+payoff=.
+payoff[x_,pM_]:=pM.x;
+payoffav=.
+payoffav[x_,pf_]:=x.pf;
+
+"Replicator Equations";
+
+eqn=.
+eqn[i_,allxfreq_,allyfreq_,inifreq_,pM_,v_]:={Subscript[v, i]'[t] == Subscript[v, i][t] (payoff[allyfreq,pM]-payoffav[allxfreq,payoff[allyfreq,pM]])[[i]], Subscript[v, i][0] == inifreq[[i]]}
+eqn[i_,allxfreq_,inifreq_,pM_,avePM_,v_]:={Subscript[v, i]'[t] == Subscript[v, i][t] (pM-avePM)[[i]], Subscript[v, i][0] == inifreq[[i]]}
+
+"Exact or Nothing probability";
+pMprob=.
+pMprob[pH_, totalcell_,ct_,prob_]:=Table[If[totalcell[[i,j]]==ct,pH[[i,j]],pH[[i,j]](1-prob)],{i,1,Length[pH]},{j,1,Length[pH]}]
+
+"Solving the equations";
+t=.
+x=.
+y=.
+Clear[pFn]
+pFn=.
+pFn[T_,rounds_,stratlist_,strategies_,pH2_,totalcell_,ct_,prob_(*bh_,cp_,cn_,cs_,Bn_,Bm_,Bf_,crm_,crs_,inifreq1_*),inifreq2_,num_:3,opt_:{0,0}]:=Module[{pH,vary,vars,col,(*pH,*)pP, payoffH,eqns,sol,pyo,avepMH,mth,fileName1,fileName2,str,checkdirect,direc,nozeros},
+(*gets the probability matrix*)
+pH=pMprob[pH2, totalcell,ct,prob];
+(*defines a color for each strategy*)
+col=Table[ColorData["Rainbow"][i/Length[strategies]],{i,1,Length[strategies]}];
+(*gets a variable for each strategy*)
+vary=Table[Subscript[y, i][t], {i,Length[pH]}];
+vars = vary;
+(*calculates payoffs*)
+payoffH=(*Simplify/@*)payoff[vary,pH];
+avepMH=payoffav[vary,payoffH];
+
+eqns = Table[eqn[i,vary,inifreq2,payoffH,avepMH,y], {i,Length[pH]}](*]*);
+mth={Automatic,"ExplicitRungeKutta","StiffnessSwitching", {"StiffnessSwitching","NonstiffTest"->False},{"EquationSimplification"->"Residual"}};
+(*solvs the equations*)
+sol = NDSolve[eqns,vars, {t,0,T}, DependentVariables->vars,Method->mth[[num]]];
+
+
+(*saves one files with the initial population frequency and the second file with the final frequency at time T*)
+
+direc="rep-dynamic-initalcond-nck";
+nozeros="z.dat";
+fileName1=NotebookDirectory[]<>direc<>"/egt-rep-"<>ToString[opt]<>"-initalcond-"<>ToString[T]<>"-"<>ToString[rounds]<>"-"<>ToString[stratlist]<>"-"<>ToString[ct]<>"-"<>ToString[prob]<>"-"<>ToString[num]<>nozeros;
+
+str = OpenAppend[fileName1];
+Write[str,inifreq2];
+Close[str];
+checkdirect=FileNames[All,NotebookDirectory[]<>direc];
+fileName2=NotebookDirectory[]<>direc<>"/egt-rep-"<>ToString[opt]<>"-"<>ToString[T]<>"-"<>ToString[rounds]<>"-"<>ToString[stratlist]<>"-"<>ToString[ct]<>"-"<>ToString[prob]<>"-"<>ToString[num]<>nozeros;
+If[MemberQ[checkdirect,fileName2]==False,
+str = OpenAppend[fileName2];
+Write[str,strategies];
+Close[str];];
+str = OpenAppend[fileName2];
+Write[str,Table[Flatten[vary/.sol(*&/@vary*)],{t,T,T}]];
+Close[str];
+
+]
+payoff matrix
+The following is the  function that calculates the payoff matrix for two players depending on the strategy space
+  
+Clear[payoffCalNRound] (*conditional and unconditional payoffs *)
+payoffCalNRound[player1_, player2_,costofkilling_,opt_:{0,0}]:=Block[{pot=0,tokill=-1,frst1=0,frst2=0,sec1=0,sec2=0,cellslost=0},
+frst1=player1[[1]]/._?Negative->0;
+frst2=player2[[1]]/._?Negative->0;
+pot=frst1+frst2;
+Which[(opt[[1]]==1)&&(Length[player1]>1), (*conditional opt[[1]]=1*)
+If[pot>player1[[3]],sec1=player1[[2,2]];,sec1=player1[[2,1]];];
+If[pot>player2[[3]],sec2=player2[[2,2]];,sec2=player2[[2,1]];];
+,
+(opt[[1]]==0)&&(Length[player1]>1),
+(*unconditional opt[[1]]=0*)
+sec1=player1[[2]];
+sec2=player2[[2]];
+];
+
+If[Length[player1]>1,
+Which[(opt[[2]]==0 ),tokill=Select[{sec1,sec2},#<0&];cellslost=If[pot<=0,0,Min[{Total[Table[If[(pot-i)<=0,0,N[(frst1/(pot-i))]],{i,0,Abs[Total[tokill]]-1}]],1.*frst1}]]
+,
+((opt[[2]]==1 )(*NotME*)&&(player1==player2)),tokill=-1; cellslost=0;,
+((opt[[2]]==1 )(*NotME*)&&(player1 != player2)),tokill=Select[{sec2},#<0&];
+If[frst1<sec2,cellslost=frst1,cellslost=sec2];,
+((opt[[2]]==2 )(*NotMENOWStrategy*)&&(player1[[2]]==player2[[2]])),tokill=-1 ;cellslost=0;,
+((opt[[2]]==2 )(*NotMENOWStrategy*)&&(player1[[2]]!= player2[[2]])),
+tokill=Select[{sec2},#<0&];
+If[frst1<sec2,cellslost=frst1,cellslost=sec2];,
+((opt[[2]]==3 )(*NotMENOWAction*)&&(sec1==sec2)),tokill=-1;cellslost=0;,
+((opt[[2]]==3 )(*NotMENOWAction*)&&(sec1!=sec2)),tokill=Select[{sec2},#<0&];
+If[frst1<sec2,cellslost=frst1,cellslost=sec2];,
+opt[[2]]==4 (*killUpToNOw*),tokill=Select[{sec1,sec2},#<0&];
+(*this scenario assumes that half of the time player1 will go first in round two and the new cell can be killed*)
+cellslost=(If[((pot+(sec1/._?Negative->0))<=0 )|| (tokill>= 0),0,Min[{Total[Table[If[(pot+(sec1/._?Negative->0)-i)<=0,0,N[(frst1+(sec1/._?Negative->0))/(pot+(sec1/._?Negative->0)-i)]],{i,0,Abs[Total[tokill]]-1}]],1.*frst1}]]+
+If[((pot+(sec2/._?Negative->0))<=0 )|| (tokill>= 0),0,Min[{Total[Table[If[(pot+(sec2/._?Negative->0)-i)<=0,0,N[(frst1/(pot+(sec2/._?Negative->0)-i))]],{i,0,Abs[Total[tokill]]-1}]],1.*frst1}]])/2.;
+];
+];(*if two rounds*)
+
+(*alternative R1 games that are sequential*)
+If[((opt[[2]]==5 )&&(Length[player1]<2)),
+If[player2[[1]]<0,cellslost=0.5];
+If[player1[[1]]<0,sec1=-1];
+];
+If[((opt[[2]]==6 )&&(Length[player1]<2)),
+If[(player2[[1]]<0)&&(player1[[1]]>0),cellslost=0.5];
+If[player1[[1]]<0,sec1=-1];
+];
+Total[{frst1,(sec1/._?Negative->0),If[sec1<0,-costofkilling,0],-cellslost}](*total*)
+
+
+]
+strategy-list setup
+The following are the  functions that defines the strategy space
+  
+
+
+rounds=2; (* rounds explored are  1 and 2*)
+If[rounds==2,
+strlist={-1,0,1};] (**)
+
+NKC2C=1; (*make this 1 in rounds =1 and runing (*N, K c and 2C*) else make it 0*)
+
+If[NKC2C!=0,
+strlist={-1,0,1};,
+strlist={-1,0,1,2};
+];
+
+
+(* generates possible combinations for strategy list*)
+allplayers=Tuples[strlist,rounds]; 
+
+allpcont=allplayers; (*make a copy list*)
+allpcont2=allpcont; (*make a copy list*)
+
+"CHOOSE ONE"
+(*unconditonal game options*)
+cond={0,0}; (*(0,5},{0,6}*)
+
+(*conditonal game options*)
+cond={1,0}; (*or cond={1,0,-1} to include Ks in the first round*)
+(*removes killers in the first round to reduce strat space unless specifies*)
+If[(rounds>1.)&&(cond[[1]]==0),
+If[Length[cond]==3,allpcont2[[All,1]]=allpcont2[[All,1]],
+allpcont2[[All,1]]=allpcont2[[All,1]]/._?Negative->0;];
+]
+(*CONDITIONAL SPACE SUBSTITUES*)
+If[cond[[1]]==1,
+(*get all combinations for strat space depending on round*)
+allpcont=Tuples[allplayers,rounds];
+allpcont2=allpcont;
+If[rounds>1.,
+If[Length[cond]==3,allpcont2[[All,1]]=allpcont2[[All,1,1]],
+allpcont2[[All,1]]=allpcont2[[All,1,1]]/._?Negative->0;]; (*no negative in the first spot*)
+allpcont2[[All,2,1]]=allpcont2[[All,2,1]]/._?Negative->0; (*no negative in the first condition*)
+allpcont2[[All,2,2]]=allpcont2[[All,2,2]]/._?Positive->-1; (*only negative in the secod condition*)
+];
+allpcont2=Union[allpcont2]; (*remove duplicates*)
+allpcont2=Flatten[Map[Function[dummy,Join[dummy,{#}]&/@Range[0,Max[strlist]*rounds,1]],allpcont2],1];
+,
+(*unconditional*)
+allpcont2=Union[allpcont2];];
+
+Length[allpcont2]
+allpcont2
+
+
+Out[347]= CHOOSE ONE
+Out[352]= 24
+Out[353]= {{0,{0,-1},0},{0,{0,-1},1},{0,{0,-1},2},{0,{0,0},0},{0,{0,0},1},{0,{0,0},2},{0,{1,-1},0},{0,{1,-1},1},{0,{1,-1},2},{0,{1,0},0},{0,{1,0},1},{0,{1,0},2},{1,{0,-1},0},{1,{0,-1},1},{1,{0,-1},2},{1,{0,0},0},{1,{0,0},1},{1,{0,0},2},{1,{1,-1},0},{1,{1,-1},1},{1,{1,-1},2},{1,{1,0},0},{1,{1,0},1},{1,{1,0},2}}
+Run Simulations (Monte-Carlo)
+(*strategy space from above*)
+allplayers=allpcont2
+(*payoff matrix*)
+allp=Table[payoffCalNRound[i, j,0,cond],{i,allpcont2},{j,allpcont2}]
+
+meth=5 (*normally 3 but with more round it needs a different metthod:={Automatic,"ExplicitRungeKutta","StiffnessSwitching", {"StiffnessSwitching","NonstiffTest"->False},{"EquationSimplification"->"Residual"}};*)
+
+(*length of sims, 50 seems to be long enough for a huge parameter space it was a good balance of time 30 was not enough*)
+tleng=30
+tleng=100
+tleng=50
+
+(*calculates the initial population conditions*)
+Length[allplayers]
+If[Length[allplayers]>18,
+ni={0,1};
+ni2={0,1,2};
+initlist=Union[N[Normalize[#,Total]]&/@Join[Table[PadRight[Tuples[{1},i][[1]],Length[allplayers],ni],{i,Length[allplayers]}],
+Table[PadRight[Tuples[{1},i][[1]],Length[allplayers],ni],{i,Length[allplayers]}],Table[PadLeft[Tuples[{1},i][[1]],Length[allplayers],ni],{i,Length[allplayers]}],
+Table[PadLeft[Tuples[{1},i][[1]],Length[allplayers],ni],{i,Length[allplayers]}],Table[PadRight[Tuples[{1},i][[1]],Length[allplayers],ni2],{i,Length[allplayers]}],
+Table[PadRight[Tuples[{1},i][[1]],Length[allplayers],ni2],{i,Length[allplayers]}],Table[PadLeft[Tuples[{1},i][[1]],Length[allplayers],ni2],{i,Length[allplayers]}],
+Table[PadLeft[Tuples[{1},i][[1]],Length[allplayers],ni2],{i,Length[allplayers]}]]]
+
+,
+initlist=Select[Union[N[Normalize[#,Total]]&/@Drop[Tuples[{0.1,1,1/2},Length[allplayers]] ,1]],(Total[#]==1)&&Count[#,0.]<=1&]
+];
+
+Length[initlist]
+(*initlist*)
+(*Parallel*)
+
+probrang={0,0.5,0.8,0.9,0.95,1};(*the range of probabilities swept*)
+(*1st SET OF SIMS*)
+Table[
+pFn[tleng,rounds,strlist,allplayers,Table[payoffCalNRound[i,j,cl,cond],{i,allpcont2},{j,allpcont2}],N[Table[payoffCalNRound[i,j,cl,cond]+payoffCalNRound[j,i,cl,cond],{i,allpcont2},{j,allpcont2}]],N[tar],pl,i,meth,Join[cond,{cl}]];,{tar,{1,2(*,3*)(*,5*)(*target*)}},{pl,probrang},{cl,{0,0.25,0.5,1} (*cost*)},{i,initlist}];
+
+(*SECOND SET OF SIMS*)
+(*usual initlist just covers extreme boundary frequencies so upto 20000 more initial frequencies are chosen to get more condiitons*)
+
+Table[
+(*selects random numbers and logs them before Nomalising the frequency*)
+s=RandomVariate[UniformDistribution[],Length[allplayers]];
+s1=Abs[Log[20,s]];
+pFn[tleng,rounds,strlist,allplayers,Table[payoffCalNRound[i,j,cl,cond],{i,allpcont2},{j,allpcont2}],N[Table[payoffCalNRound[i,j,cl,cond]+payoffCalNRound[j,i,cl,cond],{i,allpcont2},{j,allpcont2}]],N[tar],pl,Normalize[s1,Total],meth,Join[cond,{cl}]];,{tar,{1,2(*,3*)(*,5*)(*,6,7,8,10,12,24,32*)}},{pl,probrang},{cl,{0,0.25,0.5,1}},{i,1,20000-Length[initlist]}];
+
+
+Out[296]= 5
+Out[297]= 30
+Out[298]= 100
+Out[299]= 50
+Out[300]= 36
+Out[302]= 81
+(*Parameters explored 2 Rounds*)
+cond = {0, 0}, cl={0,0.25,0.5,1}, probrang={0,0.5,0.8,0.9,0.95,1}, tar={1,2}
+cond = {0, 1-3}, cl={0}, probrang={0,0.5,0.8,0.9,0.95,1}, tar={1,2}
+cond = {1, 0}, cl={0,0.25,0.5,1}, probrang={0,0.5,0.8,0.9,0.95,1}, tar={1,2}
+cond = {1, 0,-1}, cl={0}, probrang={0,0.5,0.8,0.9,0.95,1}, tar={1,2} --> keep killers in the first round
+(*Parameters explored 1 Round, {-1,0,1}*)
+cond = {0, 0}, cl={0,0.25,0.5,1}, probrang={0,0.5,0.8,0.9,0.95,1}, tar={1,2}
+cond = {0, 5-6}, cl={0,0.25,0.5,1}, probrang={0,0.5,0.8,0.9,0.95,1}, tar={1,2,3}
+(*Parameters explored 1 Round, {-1,0,1,2}*)
+cond = {0, 0}, cl={0,0.25,0.5,1}, probrang={0,0.5,0.8,0.9,0.95,1}, tar={1,2}
