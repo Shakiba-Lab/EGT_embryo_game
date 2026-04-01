@@ -9,3 +9,6 @@ Demo of the simulations and the data for all the figures that generate the pie c
 
 all files use Mathematica, the simulations were conducted on Versions >11
 
+A single iteration in the stream plot takes <2 mins
+A single condition in replicator sims takes <5 mins, and 20000 initial conditions ~3 days, depending on the round number and strategy space 
+
