@@ -1,0 +1,18 @@
+# Generated outputs
+output/plots/*.png
+output/data/*.rds
+
+# R generated files
+*.pdf
+.Rhistory
+.RData
+.Ruserdata
+Rplots.pdf
+
+# macOS
+.DS_Store
+._*
+
+# IDE
+.Rproj.user
+.vscode
