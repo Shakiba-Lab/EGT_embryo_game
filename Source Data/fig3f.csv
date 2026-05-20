@@ -1,3 +1,13 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:dd28bc7329497763e1d46b9a00e58adde1599542fc9fa6529a04f679c04fd2a6
-size 434
+size relative to human embryo, count, experiment, number of heX-embryoids
+"above", 54, control, single
+"above", 51, control, multi
+"above", 45, inhibitor, single
+"above", 69, inhibitor, multi
+"below", 45, control, single
+"below", 5, control, multi	
+"below", 17, inhibitor, single	
+"below", 3, inhibitor, multi
+"within", 116, control, single
+"within", 36, control, multi	
+"within", 81, inhibitor, single	
+"within", 28, inhibitor, multi

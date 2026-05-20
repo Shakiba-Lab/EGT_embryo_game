@@ -1,3 +1,13 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:e33e29915b55e01efb8bce2402866db064d1c9843f4a038d5e8add07bcdb044e
-size 505
+size relative to human embryo,frequency of heX-embryoids, experiment, lumen count
+Above,0.514285714, control, single
+Above,0.485714286, control, multi
+Above,0.394736842, inhibitor, single
+Above,0.605263158, inhibitor, multi
+Below,0.9, control, single
+Below,0.1, control," multi	"
+Below,0.85, inhibitor," single	"
+Below,0.15, inhibitor, multi
+Within,0.763157895, control, single
+Within,0.236842105, control," multi	"
+Within,0.743119266, inhibitor," single	"
+Within,0.256880734, inhibitor, multi
