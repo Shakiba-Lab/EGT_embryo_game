@@ -1,4 +1,5 @@
 # Git LFS configuration
+# Only large binary files (>50MB) use LFS.
+# Small CSV/XLSX source data files are kept in regular git so they appear
+# correctly in GitHub release source archives (which do not unpack LFS pointers).
 *.rds filter=lfs diff=lfs merge=lfs -text
-*.xlsx filter=lfs diff=lfs merge=lfs -text
-*.csv filter=lfs diff=lfs merge=lfs -text

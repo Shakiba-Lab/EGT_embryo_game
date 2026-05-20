@@ -1,3 +1,5 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:2bea4bc295eb3b5a80cb1b868625ec4151bfcd7f80ebab917943a6e1670927e7
-size 147
+lumen count,experiment,number of heX-embryoids
+single, control,215
+multi, control,92
+multi, caspase inhibitor,100
+single, caspase inhibitor,143
